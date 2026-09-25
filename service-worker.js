@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'math-notes-shell-v2';
+const CACHE_VERSION = 'math-notes-shell-v3';
 const MATHJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/mathjs/15.1.0/math.min.js';
 const APP_SHELL = [
   './',
@@ -41,6 +41,19 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => caches.match('./index.html').then((response) => response || caches.match('./'))),
+    );
+    return;
+  }
+
+  const isCoreAsset = isSameOrigin && /\/(?:app\.js|styles\.css|manifest\.webmanifest)$/.test(requestUrl.pathname);
+  if (isCoreAsset) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, response.clone()));
+          return response;
+        })
+        .catch(() => caches.match(event.request)),
     );
     return;
   }

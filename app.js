@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "1.1.1";
+  const APP_VERSION = "1.1.2";
   const STORAGE_KEY = "math-notes-app-v1";
   const DEFAULT_TITLE = "Nuova pagina";
   const DEFAULT_SETTINGS = { theme: "system", palette: "sage", precision: 12 };
@@ -451,11 +451,19 @@
   async function registerServiceWorker() {
     if (!("serviceWorker" in navigator)) return;
     try {
-      const registration = await navigator.serviceWorker.register("./service-worker.js");
+      const registration = await navigator.serviceWorker.register("./service-worker.js", { updateViaCache: "none" });
       const offerUpdate = () => {
         if (registration.waiting && navigator.serviceWorker.controller) showUpdatePrompt(registration);
       };
-      offerUpdate();
+      const checkForUpdate = async () => {
+        try {
+          await registration.update();
+          offerUpdate();
+        } catch (error) {
+          console.warn("Controllo aggiornamenti non riuscito.", error);
+        }
+      };
+      void checkForUpdate();
       registration.addEventListener("updatefound", () => {
         const worker = registration.installing;
         worker?.addEventListener("statechange", () => {
@@ -464,6 +472,10 @@
       });
       navigator.serviceWorker.addEventListener("controllerchange", () => {
         if (updateRequested) window.location.reload();
+      });
+      window.addEventListener("focus", () => { void checkForUpdate(); });
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") void checkForUpdate();
       });
     } catch (error) {
       console.warn("Service worker non registrato.", error);
