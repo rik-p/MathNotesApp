@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f8f7f3" />
+    <meta
+      name="description"
+      content="Math Notes — un quaderno di calcolo personale, semplice e locale."
+    />
+    <title>Math Notes</title>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/15.1.0/math.min.js"
+      referrerpolicy="no-referrer"
+    ></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Le tue pagine">
+        <div class="brand-row">
+          <a class="brand" href="./" aria-label="Math Notes, home">
+            <span class="brand-mark">∑</span>
+            <span>Math Notes</span>
+          </a>
+          <button class="icon-button sidebar-close" id="sidebarClose" aria-label="Chiudi elenco pagine">×</button>
+        </div>
+
+        <div class="sidebar-actions">
+          <button class="new-page-button" id="newPageButton">
+            <span aria-hidden="true">＋</span> Nuova pagina
+          </button>
+        </div>
+
+        <nav class="page-list" id="pageList" aria-label="Pagine salvate"></nav>
+
+        <div class="sidebar-footer">
+          <span class="storage-indicator"><i></i> Salvato su questo dispositivo</span>
+          <button class="text-button" id="importButton">Importa</button>
+          <button class="text-button" id="exportButton">Esporta</button>
+          <input id="importFile" type="file" accept="application/json,.json" hidden />
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <button class="icon-button menu-button" id="menuButton" aria-label="Apri elenco pagine">☰</button>
+          <div class="crumb"><span class="crumb-dot"></span> Quaderno personale</div>
+          <div class="topbar-actions">
+            <span class="save-state" id="saveState">Salvato</span>
+            <button class="icon-button" id="duplicateButton" title="Duplica pagina" aria-label="Duplica pagina">⧉</button>
+            <button class="icon-button danger-button" id="deletePageButton" title="Elimina pagina" aria-label="Elimina pagina">⌫</button>
+          </div>
+        </header>
+
+        <section class="notebook" aria-label="Editor di note matematiche">
+          <div class="note-heading">
+            <input id="pageTitle" class="page-title" aria-label="Titolo pagina" maxlength="80" />
+            <p id="pageMeta" class="page-meta"></p>
+          </div>
+
+          <div class="formula-toolbar" aria-label="Inserisci simbolo o funzione">
+            <span class="toolbar-label">Inserisci</span>
+            <div class="symbol-group">
+              <button data-insert="π" title="Pi greco">π</button>
+              <button data-insert="√()" data-caret="-1" title="Radice quadrata">√</button>
+              <button data-insert="^2" title="Al quadrato">x²</button>
+              <button data-insert="^" title="Potenza">xⁿ</button>
+              <button data-insert="×" title="Moltiplicazione">×</button>
+              <button data-insert="÷" title="Divisione">÷</button>
+              <button data-insert="()" data-caret="-1" title="Parentesi">( )</button>
+            </div>
+            <span class="toolbar-separator" aria-hidden="true"></span>
+            <div class="symbol-group">
+              <button data-insert="log()" data-caret="-1">log</button>
+              <button data-insert="ln()" data-caret="-1">ln</button>
+              <button data-insert="sin()" data-caret="-1">sin</button>
+              <button data-insert="cos()" data-caret="-1">cos</button>
+              <button data-insert="abs()" data-caret="-1">|x|</button>
+            </div>
+          </div>
+
+          <div class="hint-card" id="hintCard">
+            <div class="hint-symbol">✦</div>
+            <div>
+              <strong>Scrivi come su carta.</strong>
+              <span>Definisci con <code>r = 3</code>, poi usa <code>A = π × r²</code>.</span>
+            </div>
+            <button id="closeHint" class="icon-button" aria-label="Nascondi suggerimento">×</button>
+          </div>
+
+          <div class="cells" id="cells" aria-live="polite"></div>
+          <button class="add-line-button" id="addLineButton"><span>＋</span> Aggiungi riga</button>
+
+          <section class="reference-card" aria-labelledby="referenceTitle">
+            <div>
+              <p class="eyebrow">PICCOLA GUIDA</p>
+              <h2 id="referenceTitle">Notazione naturale</h2>
+            </div>
+            <div class="reference-grid">
+              <div><code>a = 12</code><span>definisci una variabile</span></div>
+              <div><code>A = π × r²</code><span>usa risultati precedenti</span></div>
+              <div><code>√(a) + log(10)</code><span>funzioni e simboli</span></div>
+              <div><code>3 cm + 20 mm</code><span>anche con le unità</span></div>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
