@@ -9,7 +9,9 @@ Un quaderno di calcolo matematico personale, interamente statico e adatto a GitH
 - Scrivi con simboli naturali: `π`, `√`, `×`, `÷`, potenze e funzioni come `log`, `ln`, `sin` e `cos`.
 - Inserisci operatori dalla barra superiore.
 - Esporta e reimporta tutte le note in un file JSON.
-- Funziona senza backend: dopo il primo caricamento della libreria di calcolo, i dati restano sul dispositivo.
+- Personalizza precisione dei risultati, palette e tema (chiaro, scuro o sistema).
+- È una PWA: il service worker conserva l'app per l'uso offline e mostra un banner quando è pronta una nuova versione.
+- Funziona senza backend: i dati restano sul dispositivo.
 
 ## Pubblicazione con GitHub Pages
 
@@ -21,4 +23,4 @@ In GitHub: **Settings → Pages → Deploy from a branch → `main` → `/(root)
 
 Non sono necessari pacchetti né build step: apri `index.html` in un browser oppure avvia un server statico nella cartella del progetto.
 
-La libreria [math.js](https://mathjs.org/) viene caricata da CDN per valutare le espressioni.
+La libreria [math.js](https://mathjs.org/) viene caricata da CDN e mantenuta nella cache dell'app per valutare le espressioni anche offline dopo la prima visita.

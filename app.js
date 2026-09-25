@@ -2,13 +2,18 @@
 (function () {
   "use strict";
 
+  const APP_VERSION = "1.1.0";
   const STORAGE_KEY = "math-notes-app-v1";
   const HINT_KEY = "math-notes-hint-hidden";
   const DEFAULT_TITLE = "Nuova pagina";
+  const DEFAULT_SETTINGS = { theme: "system", palette: "sage", precision: 12 };
+  const PALETTES = new Set(["sage", "bordeaux", "midnight", "plum"]);
+  const THEMES = new Set(["system", "light", "dark"]);
   let state = loadState();
   let focusedCellId = null;
   let toastTimer;
   let saveTimer;
+  let updateRequested = false;
 
   const els = {
     pageList: document.getElementById("pageList"),
@@ -17,9 +22,14 @@
     pageMeta: document.getElementById("pageMeta"),
     saveState: document.getElementById("saveState"),
     hintCard: document.getElementById("hintCard"),
-    toast: document.getElementById("toast"),
+    toastRegion: document.getElementById("toastRegion"),
     importFile: document.getElementById("importFile"),
     sidebar: document.querySelector(".sidebar"),
+    settingsDialog: document.getElementById("settingsDialog"),
+    paletteSetting: document.getElementById("paletteSetting"),
+    themeSetting: document.getElementById("themeSetting"),
+    precisionSetting: document.getElementById("precisionSetting"),
+    appVersion: document.getElementById("appVersion"),
   };
 
   function uid() {
@@ -42,22 +52,38 @@
 
   function defaultState() {
     const page = newPage("Primi calcoli");
-    return { version: 1, activePageId: page.id, pages: [page] };
+    return { version: 1, settings: { ...DEFAULT_SETTINGS }, activePageId: page.id, pages: [page] };
+  }
+
+  function normalizeState(candidate) {
+    if (!candidate || !Array.isArray(candidate.pages) || !candidate.pages.length) return defaultState();
+    const settings = { ...DEFAULT_SETTINGS, ...(candidate.settings || {}) };
+    if (!THEMES.has(settings.theme)) settings.theme = DEFAULT_SETTINGS.theme;
+    if (!PALETTES.has(settings.palette)) settings.palette = DEFAULT_SETTINGS.palette;
+    settings.precision = [6, 10, 12, 14].includes(Number(settings.precision))
+      ? Number(settings.precision)
+      : DEFAULT_SETTINGS.precision;
+
+    const pages = candidate.pages.map((page) => ({
+      id: page.id || uid(),
+      title: String(page.title || DEFAULT_TITLE),
+      createdAt: page.createdAt || new Date().toISOString(),
+      updatedAt: page.updatedAt || new Date().toISOString(),
+      cells: Array.isArray(page.cells) && page.cells.length
+        ? page.cells.map((cell) => ({ id: cell.id || uid(), expression: String(cell.expression ?? "") }))
+        : [{ id: uid(), expression: "" }],
+    }));
+    const activePageId = pages.some((page) => page.id === candidate.activePageId)
+      ? candidate.activePageId
+      : pages[0].id;
+    return { version: 1, settings, activePageId, pages };
   }
 
   function loadState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return defaultState();
-      const saved = JSON.parse(raw);
-      if (!saved || !Array.isArray(saved.pages) || !saved.pages.length) return defaultState();
-      saved.pages.forEach((page) => {
-        if (!Array.isArray(page.cells) || !page.cells.length) page.cells = [{ id: uid(), expression: "" }];
-        page.cells = page.cells.map((cell) => ({ id: cell.id || uid(), expression: String(cell.expression || "") }));
-        page.title = String(page.title || DEFAULT_TITLE);
-      });
-      if (!saved.pages.some((page) => page.id === saved.activePageId)) saved.activePageId = saved.pages[0].id;
-      return saved;
+      return normalizeState(JSON.parse(raw));
     } catch (error) {
       console.warn("Impossibile leggere le note locali", error);
       return defaultState();
@@ -68,11 +94,28 @@
     return state.pages.find((page) => page.id === state.activePageId) || state.pages[0];
   }
 
+  function applyTheme() {
+    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const resolvedTheme = state.settings.theme === "system"
+      ? (prefersDark ? "dark" : "light")
+      : state.settings.theme;
+    document.documentElement.dataset.theme = resolvedTheme;
+    document.documentElement.dataset.palette = state.settings.palette;
+  }
+
+  function syncSettingsUi() {
+    els.paletteSetting.value = state.settings.palette;
+    els.themeSetting.value = state.settings.theme;
+    els.precisionSetting.value = String(state.settings.precision);
+    els.appVersion.textContent = `Math Notes · Versione ${APP_VERSION}`;
+  }
+
   function persist() {
     clearTimeout(saveTimer);
     els.saveState.textContent = "Salvataggio…";
     saveTimer = window.setTimeout(() => {
       try {
+        state = normalizeState(state);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         els.saveState.textContent = "Salvato";
       } catch (error) {
@@ -116,7 +159,7 @@
     if (typeof value === "undefined") return "";
     if (typeof math === "undefined") return "Motore non disponibile";
     try {
-      return math.format(value, { precision: 12, lowerExp: -7, upperExp: 12 });
+      return math.format(value, { precision: state.settings.precision, lowerExp: -7, upperExp: 12 });
     } catch (_) {
       return String(value);
     }
@@ -336,15 +379,9 @@
         if (!imported || !Array.isArray(imported.pages) || !imported.pages.length) throw new Error("Formato errato");
         const approved = window.confirm("Importare queste note sostituirà quelle presenti su questo dispositivo. Continuare?");
         if (!approved) return;
-        state = imported;
-        state.pages.forEach((page) => {
-          page.id = page.id || uid();
-          page.title = String(page.title || DEFAULT_TITLE);
-          page.cells = Array.isArray(page.cells) && page.cells.length
-            ? page.cells.map((cell) => ({ id: cell.id || uid(), expression: String(cell.expression || "") }))
-            : [{ id: uid(), expression: "" }];
-        });
-        if (!state.pages.some((page) => page.id === state.activePageId)) state.activePageId = state.pages[0].id;
+        state = normalizeState(imported);
+        applyTheme();
+        syncSettingsUi();
         persist();
         render();
         showToast("Note importate");
@@ -357,12 +394,77 @@
 
   function showToast(message) {
     clearTimeout(toastTimer);
-    els.toast.textContent = message;
-    els.toast.classList.add("show");
-    toastTimer = window.setTimeout(() => els.toast.classList.remove("show"), 2600);
+    const item = document.createElement("div");
+    item.className = "toast";
+    item.textContent = message;
+    els.toastRegion.querySelector(".toast")?.remove();
+    els.toastRegion.append(item);
+    toastTimer = window.setTimeout(() => item.remove(), 2800);
   }
 
   function closeSidebar() { els.sidebar.classList.remove("open"); }
+
+  function resetData() {
+    const accepted = window.confirm("Ripristinare i dati iniziali? Tutte le note presenti su questo dispositivo verranno eliminate.");
+    if (!accepted) return;
+    clearTimeout(saveTimer);
+    try { localStorage.removeItem(STORAGE_KEY); } catch (_) { /* il nuovo stato resterà comunque in memoria */ }
+    state = defaultState();
+    applyTheme();
+    syncSettingsUi();
+    persist();
+    render();
+    els.settingsDialog.close();
+    showToast("Dati iniziali ripristinati");
+  }
+
+  async function registerServiceWorker() {
+    if (!("serviceWorker" in navigator)) return;
+    try {
+      const registration = await navigator.serviceWorker.register("./service-worker.js");
+      const offerUpdate = () => {
+        if (registration.waiting && navigator.serviceWorker.controller) showUpdatePrompt(registration);
+      };
+      offerUpdate();
+      registration.addEventListener("updatefound", () => {
+        const worker = registration.installing;
+        worker?.addEventListener("statechange", () => {
+          if (worker.state === "installed") offerUpdate();
+        });
+      });
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (updateRequested) window.location.reload();
+      });
+    } catch (error) {
+      console.warn("Service worker non registrato.", error);
+    }
+  }
+
+  function showUpdatePrompt(registration) {
+    if (document.getElementById("updatePrompt")) return;
+    const prompt = document.createElement("section");
+    prompt.id = "updatePrompt";
+    prompt.className = "update-prompt";
+    prompt.setAttribute("role", "status");
+    const copy = document.createElement("div");
+    const title = document.createElement("strong");
+    const description = document.createElement("span");
+    title.textContent = "Aggiornamento disponibile";
+    description.textContent = "È pronta una nuova versione di Math Notes.";
+    copy.append(title, description);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "button";
+    button.textContent = "Aggiorna ora";
+    button.addEventListener("click", () => {
+      updateRequested = true;
+      button.disabled = true;
+      button.textContent = "Aggiornamento…";
+      registration.waiting?.postMessage({ type: "SKIP_WAITING" });
+    });
+    prompt.append(copy, button);
+    els.toastRegion.append(prompt);
+  }
 
   document.getElementById("newPageButton").addEventListener("click", addPage);
   document.getElementById("addLineButton").addEventListener("click", () => addLine());
@@ -370,6 +472,13 @@
   document.getElementById("deletePageButton").addEventListener("click", deletePage);
   document.getElementById("exportButton").addEventListener("click", exportNotes);
   document.getElementById("importButton").addEventListener("click", () => els.importFile.click());
+  document.getElementById("settingsButton").addEventListener("click", () => {
+    syncSettingsUi();
+    els.settingsDialog.showModal();
+  });
+  document.getElementById("settingsExportButton").addEventListener("click", exportNotes);
+  document.getElementById("settingsImportButton").addEventListener("click", () => els.importFile.click());
+  document.getElementById("resetDataButton").addEventListener("click", resetData);
   document.getElementById("menuButton").addEventListener("click", () => els.sidebar.classList.add("open"));
   document.getElementById("sidebarClose").addEventListener("click", closeSidebar);
   document.getElementById("closeHint").addEventListener("click", () => {
@@ -458,6 +567,25 @@
     event.target.value = "";
   });
 
+  els.settingsDialog.addEventListener("change", (event) => {
+    if (event.target === els.paletteSetting) state.settings.palette = event.target.value;
+    if (event.target === els.themeSetting) state.settings.theme = event.target.value;
+    if (event.target === els.precisionSetting) state.settings.precision = Number(event.target.value);
+    state = normalizeState(state);
+    applyTheme();
+    syncSettingsUi();
+    persist();
+    focusedCellId = null;
+    renderCells();
+  });
+
   if (localStorage.getItem(HINT_KEY)) els.hintCard.hidden = true;
+  applyTheme();
+  syncSettingsUi();
   render();
+  void registerServiceWorker();
+  const colorScheme = window.matchMedia?.("(prefers-color-scheme: dark)");
+  colorScheme?.addEventListener("change", () => {
+    if (state.settings.theme === "system") applyTheme();
+  });
 })();

@@ -3,12 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f8f7f3" />
+    <meta name="theme-color" content="#f5f2eb" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#111714" media="(prefers-color-scheme: dark)" />
     <meta
       name="description"
       content="Math Notes — un quaderno di calcolo personale, semplice e locale."
     />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Math Notes" />
     <title>Math Notes</title>
+    <link rel="apple-touch-icon" href="./assets/icon.svg" />
+    <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -25,6 +31,7 @@
     <script defer src="app.js"></script>
   </head>
   <body>
+    <a class="skip-link" href="#notebook">Vai al quaderno</a>
     <div class="app-shell">
       <aside class="sidebar" aria-label="Le tue pagine">
         <div class="brand-row">
@@ -57,12 +64,13 @@
           <div class="crumb"><span class="crumb-dot"></span> Quaderno personale</div>
           <div class="topbar-actions">
             <span class="save-state" id="saveState">Salvato</span>
+            <button class="icon-button" id="settingsButton" title="Impostazioni" aria-label="Apri impostazioni">⚙</button>
             <button class="icon-button" id="duplicateButton" title="Duplica pagina" aria-label="Duplica pagina">⧉</button>
             <button class="icon-button danger-button" id="deletePageButton" title="Elimina pagina" aria-label="Elimina pagina">⌫</button>
           </div>
         </header>
 
-        <section class="notebook" aria-label="Editor di note matematiche">
+        <section class="notebook" id="notebook" aria-label="Editor di note matematiche">
           <div class="note-heading">
             <input id="pageTitle" class="page-title" aria-label="Titolo pagina" maxlength="80" />
             <p id="pageMeta" class="page-meta"></p>
@@ -117,6 +125,58 @@
       </main>
     </div>
 
-    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+
+    <dialog class="settings-dialog" id="settingsDialog" aria-labelledby="settingsTitle">
+      <form method="dialog">
+        <header>
+          <div>
+            <p class="eyebrow">PREFERENZE</p>
+            <h2 id="settingsTitle">Impostazioni</h2>
+          </div>
+          <button class="icon-button" value="close" aria-label="Chiudi impostazioni">×</button>
+        </header>
+
+        <section class="settings-section">
+          <label class="setting-row" for="precisionSetting">
+            <span><strong>Precisione risultati</strong><small>Cifre significative nei calcoli</small></span>
+            <select id="precisionSetting" name="precision">
+              <option value="6">6 cifre</option>
+              <option value="10">10 cifre</option>
+              <option value="12">12 cifre</option>
+              <option value="14">14 cifre</option>
+            </select>
+          </label>
+          <label class="setting-row" for="paletteSetting">
+            <span><strong>Palette</strong><small>Colori dell'app</small></span>
+            <select id="paletteSetting" name="palette">
+              <option value="sage">Verde e panna</option>
+              <option value="bordeaux">Bordeaux e panna</option>
+              <option value="midnight">Blu notte e sabbia</option>
+              <option value="plum">Prugna e rosa cipria</option>
+            </select>
+          </label>
+          <label class="setting-row" for="themeSetting">
+            <span><strong>Aspetto</strong><small>Chiaro, scuro o sistema</small></span>
+            <select id="themeSetting" name="theme">
+              <option value="system">Sistema</option>
+              <option value="light">Chiaro</option>
+              <option value="dark">Scuro</option>
+            </select>
+          </label>
+        </section>
+
+        <section class="settings-section">
+          <h3>Backup dei dati</h3>
+          <p class="settings-copy">Le note restano su questo dispositivo. Salva un file JSON per conservarne una copia.</p>
+          <div class="data-actions">
+            <button class="button secondary" id="settingsExportButton" type="button">Esporta JSON</button>
+            <button class="button secondary" id="settingsImportButton" type="button">Importa JSON</button>
+          </div>
+          <button class="text-button danger-text" id="resetDataButton" type="button">Ripristina dati iniziali</button>
+        </section>
+        <p class="app-version" id="appVersion"></p>
+      </form>
+    </dialog>
   </body>
 </html>
