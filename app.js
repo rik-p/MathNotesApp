@@ -4,7 +4,6 @@
 
   const APP_VERSION = "1.1.0";
   const STORAGE_KEY = "math-notes-app-v1";
-  const HINT_KEY = "math-notes-hint-hidden";
   const DEFAULT_TITLE = "Nuova pagina";
   const DEFAULT_SETTINGS = { theme: "system", palette: "sage", precision: 12 };
   const PALETTES = new Set(["sage", "bordeaux", "midnight", "plum"]);
@@ -14,6 +13,8 @@
   let toastTimer;
   let saveTimer;
   let updateRequested = false;
+  let mathConfigured = false;
+  let insertionTarget = { cellId: null, start: 0, end: 0 };
 
   const els = {
     pageList: document.getElementById("pageList"),
@@ -21,7 +22,6 @@
     pageTitle: document.getElementById("pageTitle"),
     pageMeta: document.getElementById("pageMeta"),
     saveState: document.getElementById("saveState"),
-    hintCard: document.getElementById("hintCard"),
     toastRegion: document.getElementById("toastRegion"),
     importFile: document.getElementById("importFile"),
     sidebar: document.querySelector(".sidebar"),
@@ -136,6 +136,10 @@
   function normalizedExpression(value) {
     const superscripts = { "⁰": "^0", "¹": "^1", "²": "^2", "³": "^3", "⁴": "^4", "⁵": "^5", "⁶": "^6", "⁷": "^7", "⁸": "^8", "⁹": "^9" };
     return value
+      .replace(/€\s*(\d+(?:[.,]\d+)?)/g, "$1 EUR")
+      .replace(/(\d+(?:[.,]\d+)?)\s*€/g, "$1 EUR")
+      .replaceAll("€", "EUR")
+      .replace(/(\d),(\d)/g, "$1.$2")
       .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, (character) => superscripts[character])
       .replaceAll("×", "*")
       .replaceAll("÷", "/")
@@ -144,6 +148,17 @@
       .replaceAll("√", "sqrt")
       .replace(/\bln\s*\(/g, "log(")
       .trim();
+  }
+
+  function configureMathEngine() {
+    if (mathConfigured || typeof math === "undefined") return;
+    try {
+      // Un'unità base mantiene gli euro compatibili con somme, prodotti e variabili.
+      math.createUnit("EUR");
+    } catch (_) {
+      // L'unità può essere già presente se il motore è stato inizializzato altrove.
+    }
+    mathConfigured = true;
   }
 
   function friendlyError(error) {
@@ -159,7 +174,7 @@
     if (typeof value === "undefined") return "";
     if (typeof math === "undefined") return "Motore non disponibile";
     try {
-      return math.format(value, { precision: state.settings.precision, lowerExp: -7, upperExp: 12 });
+      return math.format(value, { precision: state.settings.precision, lowerExp: -7, upperExp: 12 }).replace(/\bEUR\b/g, "€");
     } catch (_) {
       return String(value);
     }
@@ -171,6 +186,7 @@
       page.cells.forEach((cell) => results.set(cell.id, { error: "Motore non disponibile" }));
       return results;
     }
+    configureMathEngine();
     const parser = math.parser();
     page.cells.forEach((cell) => {
       const raw = cell.expression.trim();
@@ -338,12 +354,13 @@
   }
 
   function insertAtCursor(text, relativeCaret) {
-    const input = document.activeElement && document.activeElement.classList.contains("expression")
-      ? document.activeElement
-      : els.cells.querySelector(".expression");
+    const input = insertionTarget.cellId
+      ? els.cells.querySelector(`[data-cell-id="${insertionTarget.cellId}"] .expression`)
+      : (document.activeElement?.classList.contains("expression") ? document.activeElement : els.cells.querySelector(".expression"));
     if (!input) return;
-    const start = input.selectionStart ?? input.value.length;
-    const end = input.selectionEnd ?? input.value.length;
+    const isStoredTarget = input.closest(".cell").dataset.cellId === insertionTarget.cellId;
+    const start = isStoredTarget ? insertionTarget.start : (input.selectionStart ?? input.value.length);
+    const end = isStoredTarget ? insertionTarget.end : (input.selectionEnd ?? input.value.length);
     const value = `${input.value.slice(0, start)}${text}${input.value.slice(end)}`;
     const id = input.closest(".cell").dataset.cellId;
     updateCell(id, value);
@@ -353,7 +370,20 @@
       const position = start + text.length + (Number(relativeCaret) || 0);
       nextInput.focus();
       nextInput.setSelectionRange(position, position);
+      rememberInsertionTarget(nextInput);
     });
+  }
+
+  function rememberInsertionTarget(input) {
+    if (!input?.matches(".expression")) return;
+    const cellId = input.closest(".cell")?.dataset.cellId;
+    if (!cellId) return;
+    focusedCellId = cellId;
+    insertionTarget = {
+      cellId,
+      start: input.selectionStart ?? input.value.length,
+      end: input.selectionEnd ?? input.value.length,
+    };
   }
 
   function exportNotes() {
@@ -481,9 +511,11 @@
   document.getElementById("resetDataButton").addEventListener("click", resetData);
   document.getElementById("menuButton").addEventListener("click", () => els.sidebar.classList.add("open"));
   document.getElementById("sidebarClose").addEventListener("click", closeSidebar);
-  document.getElementById("closeHint").addEventListener("click", () => {
-    els.hintCard.hidden = true;
-    localStorage.setItem(HINT_KEY, "1");
+  document.getElementById("insertButton").addEventListener("click", () => {
+    const menu = document.getElementById("insertMenu");
+    const nextOpen = menu.hidden;
+    menu.hidden = !nextOpen;
+    document.getElementById("insertButton").setAttribute("aria-expanded", String(nextOpen));
   });
 
   els.pageList.addEventListener("click", (event) => {
@@ -514,6 +546,7 @@
     page.updatedAt = new Date().toISOString();
     persist();
     focusedCellId = item.id;
+    rememberInsertionTarget(event.target);
     const results = calculatePage(page);
     page.cells.forEach((entry) => {
       const output = els.cells.querySelector(`[data-cell-id="${entry.id}"] .result`);
@@ -536,7 +569,15 @@
   });
 
   els.cells.addEventListener("focusin", (event) => {
-    if (event.target.matches(".expression")) focusedCellId = event.target.closest(".cell").dataset.cellId;
+    if (event.target.matches(".expression")) rememberInsertionTarget(event.target);
+  });
+
+  els.cells.addEventListener("keyup", (event) => {
+    if (event.target.matches(".expression")) rememberInsertionTarget(event.target);
+  });
+
+  els.cells.addEventListener("click", (event) => {
+    if (event.target.matches(".expression")) rememberInsertionTarget(event.target);
   });
 
   els.cells.addEventListener("keydown", (event) => {
@@ -557,9 +598,20 @@
     if (button) removeLine(button.dataset.removeCell);
   });
 
-  document.querySelector(".formula-toolbar").addEventListener("click", (event) => {
+  document.getElementById("insertMenu").addEventListener("pointerdown", (event) => {
+    if (event.target.closest("[data-insert]")) event.preventDefault();
+  });
+
+  document.getElementById("insertMenu").addEventListener("click", (event) => {
     const button = event.target.closest("[data-insert]");
-    if (button) insertAtCursor(button.dataset.insert, button.dataset.caret);
+    if (!button) return;
+    insertAtCursor(button.dataset.insert, button.dataset.caret);
+    event.currentTarget.hidden = true;
+    document.getElementById("insertButton").setAttribute("aria-expanded", "false");
+  });
+
+  document.addEventListener("selectionchange", () => {
+    if (document.activeElement?.matches(".expression")) rememberInsertionTarget(document.activeElement);
   });
 
   els.importFile.addEventListener("change", (event) => {
@@ -579,7 +631,6 @@
     renderCells();
   });
 
-  if (localStorage.getItem(HINT_KEY)) els.hintCard.hidden = true;
   applyTheme();
   syncSettingsUi();
   render();

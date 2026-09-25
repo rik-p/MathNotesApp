@@ -76,51 +76,32 @@
             <p id="pageMeta" class="page-meta"></p>
           </div>
 
-          <div class="formula-toolbar" aria-label="Inserisci simbolo o funzione">
-            <span class="toolbar-label">Inserisci</span>
-            <div class="symbol-group">
-              <button data-insert="π" title="Pi greco">π</button>
-              <button data-insert="√()" data-caret="-1" title="Radice quadrata">√</button>
-              <button data-insert="^2" title="Al quadrato">x²</button>
-              <button data-insert="^" title="Potenza">xⁿ</button>
-              <button data-insert="×" title="Moltiplicazione">×</button>
-              <button data-insert="÷" title="Divisione">÷</button>
-              <button data-insert="()" data-caret="-1" title="Parentesi">( )</button>
+          <div class="insert-control">
+            <button class="insert-button" id="insertButton" type="button" aria-label="Inserisci simbolo o funzione" aria-expanded="false" aria-controls="insertMenu">+</button>
+            <div class="insert-menu" id="insertMenu" hidden>
+              <span class="insert-menu-label">Inserisci</span>
+              <div class="symbol-group">
+                <button data-insert="π" title="Pi greco">π</button>
+                <button data-insert="√()" data-caret="-1" title="Radice quadrata">√</button>
+                <button data-insert="^2" title="Al quadrato">x²</button>
+                <button data-insert="^" title="Potenza">xⁿ</button>
+                <button data-insert="×" title="Moltiplicazione">×</button>
+                <button data-insert="÷" title="Divisione">÷</button>
+                <button data-insert="()" data-caret="-1" title="Parentesi">( )</button>
+                <button data-insert="€" title="Euro">€</button>
+              </div>
+              <div class="symbol-group">
+                <button data-insert="log()" data-caret="-1">log</button>
+                <button data-insert="ln()" data-caret="-1">ln</button>
+                <button data-insert="sin()" data-caret="-1">sin</button>
+                <button data-insert="cos()" data-caret="-1">cos</button>
+                <button data-insert="abs()" data-caret="-1">|x|</button>
+              </div>
             </div>
-            <span class="toolbar-separator" aria-hidden="true"></span>
-            <div class="symbol-group">
-              <button data-insert="log()" data-caret="-1">log</button>
-              <button data-insert="ln()" data-caret="-1">ln</button>
-              <button data-insert="sin()" data-caret="-1">sin</button>
-              <button data-insert="cos()" data-caret="-1">cos</button>
-              <button data-insert="abs()" data-caret="-1">|x|</button>
-            </div>
-          </div>
-
-          <div class="hint-card" id="hintCard">
-            <div class="hint-symbol">✦</div>
-            <div>
-              <strong>Scrivi come su carta.</strong>
-              <span>Definisci con <code>r = 3</code>, poi usa <code>A = π × r²</code>.</span>
-            </div>
-            <button id="closeHint" class="icon-button" aria-label="Nascondi suggerimento">×</button>
           </div>
 
           <div class="cells" id="cells" aria-live="polite"></div>
           <button class="add-line-button" id="addLineButton"><span>＋</span> Aggiungi riga</button>
-
-          <section class="reference-card" aria-labelledby="referenceTitle">
-            <div>
-              <p class="eyebrow">PICCOLA GUIDA</p>
-              <h2 id="referenceTitle">Notazione naturale</h2>
-            </div>
-            <div class="reference-grid">
-              <div><code>a = 12</code><span>definisci una variabile</span></div>
-              <div><code>A = π × r²</code><span>usa risultati precedenti</span></div>
-              <div><code>√(a) + log(10)</code><span>funzioni e simboli</span></div>
-              <div><code>3 cm + 20 mm</code><span>anche con le unità</span></div>
-            </div>
-          </section>
         </section>
       </main>
     </div>

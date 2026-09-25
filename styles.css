@@ -94,46 +94,34 @@ button { cursor: pointer; }
 .page-title:focus { box-shadow: inset 0 -2px 0 var(--accent); }
 .page-meta { margin: 10px 1px 0; color: #92948c; font-size: 13px; }
 
-.formula-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0 -12px 20px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 11px; background: rgba(255,255,255,.56); }
-.toolbar-label { margin: 0 3px 0 2px; color: #8a8c84; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.symbol-group { display: flex; gap: 4px; }
+.insert-control { position: relative; z-index: 2; height: 34px; margin: 0 0 9px; }
+.insert-button { display: grid; width: 28px; height: 28px; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 50%; color: var(--accent); background: var(--card); box-shadow: 0 2px 5px rgba(0,0,0,.05); font-size: 20px; font-weight: 400; line-height: 1; }
+.insert-button:hover, .insert-button[aria-expanded="true"] { border-color: var(--accent); color: var(--card); background: var(--accent); }
+.insert-menu { position: absolute; top: 34px; left: 0; display: grid; gap: 8px; width: max-content; max-width: min(480px, calc(100vw - 44px)); padding: 10px; border: 1px solid var(--line); border-radius: 11px; background: var(--card); box-shadow: var(--shadow); }
+.insert-menu[hidden] { display: none; }
+.insert-menu-label { margin: 1px 3px 0; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.symbol-group { display: flex; flex-wrap: wrap; gap: 4px; }
 .symbol-group button { min-width: 30px; height: 29px; padding: 0 7px; border: 1px solid transparent; border-radius: 6px; color: #4f534c; background: transparent; font-family: "DM Mono", monospace; font-size: 12px; }
 .symbol-group button:hover { border-color: #d7ddd1; color: #3e5034; background: var(--accent-soft); }
-.toolbar-separator { width: 1px; height: 22px; margin: 0 3px; background: var(--line); }
 
-.hint-card { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 11px 12px; border: 1px solid #e1e8d9; border-radius: 9px; color: #62675d; background: #f3f7ef; font-size: 13px; }
-.hint-card strong { display: block; margin-bottom: 2px; color: #4c5844; font-size: 13px; }
-.hint-card code { padding: 1px 4px; border-radius: 3px; background: #e5eddf; font-family: "DM Mono", monospace; font-size: 11px; }
-.hint-symbol { color: #6b885c; font-size: 16px; }
-.hint-card .icon-button { margin-left: auto; flex: 0 0 auto; }
-
-.cells { display: flex; flex-direction: column; gap: 7px; }
-.cell { display: grid; grid-template-columns: 29px minmax(0, 1fr) minmax(150px, .68fr) 27px; align-items: center; min-height: 53px; padding: 4px 7px 4px 0; border: 1px solid transparent; border-radius: 9px; transition: background .15s, border-color .15s; }
+.cells { display: flex; flex-direction: column; gap: 1px; }
+.cell { display: grid; grid-template-columns: 29px minmax(0, 1fr) minmax(150px, .68fr) 27px; align-items: center; min-height: 42px; padding: 1px 7px 1px 0; border: 1px solid transparent; border-radius: 7px; transition: background .15s, border-color .15s; }
 .cell:hover, .cell:focus-within { border-color: #e5e7df; background: rgba(255,255,255,.62); }
 .line-number { color: #b1b3ab; text-align: center; font-family: "DM Mono", monospace; font-size: 11px; user-select: none; }
-.expression { width: 100%; padding: 9px 8px; border: 0; outline: 0; color: #32352f; background: transparent; font-family: "DM Mono", ui-monospace, monospace; font-size: 15px; letter-spacing: -.02em; }
+.expression { width: 100%; padding: 6px 8px; border: 0; outline: 0; color: #32352f; background: transparent; font-family: "DM Mono", ui-monospace, monospace; font-size: 15px; letter-spacing: -.02em; }
 .expression::placeholder { color: #b8b9b3; }
 .expression:focus { border-radius: 5px; background: #f7f8f4; }
-.result { overflow: hidden; padding: 8px 11px; border-left: 1px solid #ecece6; color: #547044; font-family: "DM Mono", ui-monospace, monospace; font-size: 13px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.result { overflow: hidden; padding: 6px 11px; border-left: 1px solid #ecece6; color: #547044; font-family: "DM Mono", ui-monospace, monospace; font-size: 13px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
 .result.empty { color: transparent; }
 .result.error { color: #b35e4e; font-family: "DM Sans", sans-serif; font-size: 12px; }
 .cell-remove { visibility: hidden; width: 25px; height: 25px; padding: 0; border: 0; border-radius: 5px; color: #a8aaa2; background: transparent; font-size: 17px; }
 .cell:hover .cell-remove, .cell:focus-within .cell-remove { visibility: visible; }
 .cell-remove:hover { color: var(--danger); background: #f8eae6; }
-.add-line-button { margin: 12px 0 0 29px; padding: 8px 9px; border: 0; border-radius: 7px; color: #7a7d74; background: transparent; font-size: 13px; }
+.add-line-button { margin: 7px 0 0 29px; padding: 6px 9px; border: 0; border-radius: 7px; color: #7a7d74; background: transparent; font-size: 13px; }
 .add-line-button:hover { color: var(--accent); background: var(--accent-soft); }
 .add-line-button span { font-size: 16px; vertical-align: -1px; }
 
-.reference-card { display: grid; grid-template-columns: 190px 1fr; gap: 22px; margin-top: 66px; padding: 24px; border: 1px solid #e4e5de; border-radius: 12px; background: rgba(255,255,255,.45); }
 .eyebrow { margin: 0 0 6px; color: #8b9781; font-size: 10px; font-weight: 700; letter-spacing: .1em; }
-.reference-card h2 { margin: 0; color: #45483f; font-family: "Newsreader", serif; font-size: 22px; font-weight: 500; letter-spacing: -.025em; }
-.reference-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 22px; }
-.reference-grid div { display: grid; gap: 4px; }
-.reference-grid code { color: #526248; font-family: "DM Mono", monospace; font-size: 12px; }
-.reference-grid span { color: #8a8c84; font-size: 11px; }
-
-.toast { position: fixed; z-index: 10; bottom: 24px; left: 50%; padding: 10px 13px; border-radius: 8px; color: white; background: #32372f; box-shadow: 0 10px 30px rgba(0,0,0,.16); font-size: 13px; opacity: 0; pointer-events: none; transform: translate(-50%, 10px); transition: opacity .2s, transform .2s; }
-.toast.show { opacity: 1; transform: translate(-50%, 0); }
 
 /* Preferenze, versioning e aggiornamento PWA. */
 .settings-dialog { width: min(520px, calc(100% - 28px)); max-height: calc(100dvh - 30px); padding: 0; overflow: auto; border: 1px solid var(--line); border-radius: 24px; color: var(--ink); background: var(--card); box-shadow: var(--shadow); }
@@ -164,13 +152,9 @@ button { cursor: pointer; }
 .update-prompt .button { flex: 0 0 auto; color: var(--card); background: var(--accent); white-space: nowrap; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(10px); } }
 
-:root[data-theme="dark"] .formula-toolbar, :root[data-theme="dark"] .cell:hover, :root[data-theme="dark"] .cell:focus-within { background: color-mix(in srgb, var(--card) 72%, transparent); }
+:root[data-theme="dark"] .cell:hover, :root[data-theme="dark"] .cell:focus-within { background: color-mix(in srgb, var(--card) 72%, transparent); }
 :root[data-theme="dark"] .expression:focus { background: color-mix(in srgb, var(--card) 76%, var(--paper)); }
-:root[data-theme="dark"] .hint-card { border-color: color-mix(in srgb, var(--accent) 38%, var(--line)); color: var(--muted); background: color-mix(in srgb, var(--accent-soft) 68%, var(--paper)); }
-:root[data-theme="dark"] .hint-card strong { color: var(--ink); }
-:root[data-theme="dark"] .hint-card code { background: color-mix(in srgb, var(--accent-soft) 75%, var(--paper)); }
 :root[data-theme="dark"] .page-item.active { background: color-mix(in srgb, var(--card) 85%, var(--paper)); }
-:root[data-theme="dark"] .reference-card { background: color-mix(in srgb, var(--card) 52%, transparent); }
 
 @media (max-width: 460px) {
   .data-actions { flex-direction: column; }
@@ -186,20 +170,13 @@ button { cursor: pointer; }
   .sidebar-close, .menu-button { display: grid; place-items: center; }
   .topbar { height: 57px; padding: 0 15px; }
   .notebook { width: min(100% - 30px, 920px); padding-top: 37px; }
-  .formula-toolbar { margin-right: 0; margin-left: 0; }
-  .toolbar-separator { display: none; }
-  .hint-card { align-items: flex-start; }
-  .hint-card span { display: block; line-height: 1.45; }
-  .cell { grid-template-columns: 23px minmax(0, 1fr) 25px; align-items: start; padding-top: 5px; }
+  .cell { grid-template-columns: 23px minmax(0, 1fr) 25px; align-items: start; padding: 2px 7px 2px 0; }
   .line-number { padding-top: 13px; }
-  .result { grid-column: 2 / 3; padding: 0 8px 10px; border-left: 0; white-space: normal; }
+  .result { grid-column: 2 / 3; padding: 0 8px 6px; border-left: 0; white-space: normal; }
   .cell-remove { grid-column: 3; grid-row: 1 / 3; margin-top: 6px; visibility: visible; }
-  .reference-card { grid-template-columns: 1fr; margin-top: 48px; }
 }
 
 @media (max-width: 400px) {
   .topbar-actions .icon-button { display: none; }
   .symbol-group button { min-width: 28px; padding: 0 5px; }
-  .hint-card { font-size: 12px; }
-  .reference-grid { grid-template-columns: 1fr; }
 }
