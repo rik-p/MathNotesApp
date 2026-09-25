@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "1.1.0";
+  const APP_VERSION = "1.1.1";
   const STORAGE_KEY = "math-notes-app-v1";
   const DEFAULT_TITLE = "Nuova pagina";
   const DEFAULT_SETTINGS = { theme: "system", palette: "sage", precision: 12 };
@@ -619,16 +619,22 @@
     event.target.value = "";
   });
 
-  els.settingsDialog.addEventListener("change", (event) => {
+  function saveSetting(event) {
     if (event.target === els.paletteSetting) state.settings.palette = event.target.value;
-    if (event.target === els.themeSetting) state.settings.theme = event.target.value;
-    if (event.target === els.precisionSetting) state.settings.precision = Number(event.target.value);
+    else if (event.target === els.themeSetting) state.settings.theme = event.target.value;
+    else if (event.target === els.precisionSetting) state.settings.precision = Number(event.target.value);
+    else return;
     state = normalizeState(state);
     applyTheme();
     syncSettingsUi();
     persist();
     focusedCellId = null;
     renderCells();
+  }
+
+  [els.paletteSetting, els.themeSetting, els.precisionSetting].forEach((control) => {
+    control.addEventListener("input", saveSetting);
+    control.addEventListener("change", saveSetting);
   });
 
   applyTheme();
