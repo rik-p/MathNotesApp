@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "1.2.2";
+  const APP_VERSION = "1.2.3";
   const STORAGE_KEY = "math-notes-app-v1";
   const DEFAULT_TITLE = "Nuova pagina";
   const DEFAULT_SETTINGS = { theme: "system", palette: "sage", precision: 12 };
@@ -168,10 +168,10 @@
   }
 
   function numericAssignment(expression) {
-    const match = expression.trim().match(/^([A-Za-z_À-ÿ][\wÀ-ÿ]*)\s*=\s*(-?(?:\d+(?:[.,]\d*)?|[.,]\d+))$/);
+    const match = expression.trim().match(/^([A-Za-z_À-ÿ][\wÀ-ÿ]*)\s*=\s*(-?(?:\d+(?:[.,]\d*)?|[.,]\d+))\s*((?:€|[A-Za-zµ]+)(?:\s*\/\s*(?:€|[A-Za-zµ]+))?)?$/);
     if (!match) return null;
     const value = Number(match[2].replace(",", "."));
-    return Number.isFinite(value) ? { name: match[1], value } : null;
+    return Number.isFinite(value) ? { name: match[1], value, unit: match[3] || "" } : null;
   }
 
   function defaultSlider(value) {
@@ -364,7 +364,7 @@
       sliderToggle.dataset.toggleSlider = cell.id;
       sliderToggle.setAttribute("aria-label", page.sliders?.[cell.id] ? "Rimuovi slider" : "Aggiungi slider");
       sliderToggle.title = page.sliders?.[cell.id] ? "Rimuovi slider" : "Aggiungi slider";
-      sliderToggle.textContent = "↔";
+      sliderToggle.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.25"/><circle cx="15" cy="17" r="2.25"/></svg>';
 
       row.append(dragHandle, input, result, sliderToggle, remove);
 
@@ -815,7 +815,7 @@
     const assignment = cell && numericAssignment(cell.expression);
     if (!cell || !assignment) return;
     const nextValue = Number(range.value);
-    cell.expression = `${assignment.name} = ${displayNumber(nextValue)}`;
+    cell.expression = `${assignment.name} = ${displayNumber(nextValue)}${assignment.unit ? ` ${assignment.unit}` : ""}`;
     page.updatedAt = new Date().toISOString();
     range.closest(".slider-panel").querySelector("[data-slider-display]").textContent = displayNumber(nextValue);
     persist();
