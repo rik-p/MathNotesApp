@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "1.2.1";
+  const APP_VERSION = "1.2.2";
   const STORAGE_KEY = "math-notes-app-v1";
   const DEFAULT_TITLE = "Nuova pagina";
   const DEFAULT_SETTINGS = { theme: "system", palette: "sage", precision: 12 };
@@ -188,13 +188,27 @@
     return Number(value.toFixed(10)).toString();
   }
 
-  function preferredUnitForExpression(expression, preferences) {
-    const compoundUnit = expression.match(/\b([A-Za-zµ]+)\s*\/\s*([A-Za-zµ]+)\b/);
-    if (compoundUnit) {
-      const numerator = compoundUnit[1];
-      const denominator = compoundUnit[2] === "L" ? "l" : compoundUnit[2];
-      return `${numerator} / ${denominator}`;
+  function normalizedUnitName(unit) {
+    return unit === "L" ? "l" : unit;
+  }
+
+  function isKnownUnit(unit) {
+    try {
+      math.unit(1, normalizedUnitName(unit));
+      return true;
+    } catch (_) {
+      return false;
     }
+  }
+
+  function preferredUnitForExpression(expression, preferences) {
+    const unitExpression = normalizedExpression(expression);
+    const compoundUnit = unitExpression.match(/[-+]?(?:\d+(?:\.\d*)?|\.\d+)\s*([A-Za-zµ]+)\s*\/\s*([A-Za-zµ]+)\b/);
+    if (compoundUnit && isKnownUnit(compoundUnit[1]) && isKnownUnit(compoundUnit[2])) {
+      return `${normalizedUnitName(compoundUnit[1])} / ${normalizedUnitName(compoundUnit[2])}`;
+    }
+    const directUnit = unitExpression.match(/[-+]?(?:\d+(?:\.\d*)?|\.\d+)\s*([A-Za-zµ]+)\b/);
+    if (directUnit && isKnownUnit(directUnit[1])) return normalizedUnitName(directUnit[1]);
     const symbols = expression.match(/[A-Za-z_À-ÿ][\wÀ-ÿ]*/g) || [];
     return symbols.map((symbol) => preferences.get(symbol)).find(Boolean) || null;
   }
@@ -219,14 +233,28 @@
     return "Controlla la sintassi";
   }
 
+  function convertToUnit(value, unit) {
+    if (!unit || typeof value?.to !== "function") return null;
+    try {
+      return value.to(unit);
+    } catch (_) {
+      return null;
+    }
+  }
+
   function formatResult(value, preferredUnit = null) {
     if (typeof value === "undefined") return "";
     if (typeof math === "undefined") return "Motore non disponibile";
     try {
-      const valueForDisplay = preferredUnit && typeof value?.to === "function"
-        ? value.to(preferredUnit)
-        : value;
+      // Una preferenza ereditata è usata solo se dimensionalmente compatibile.
+      // Per esempio, il risultato in litri non deve ereditare "km / L" da kml.
+      let valueForDisplay = convertToUnit(value, preferredUnit) || value;
+
+      // Se l'utente moltiplica un importo (€) per un volume, mathjs può mostrare
+      // la stessa dimensione nella sua forma base (km^3). La rendiamo leggibile.
+      if (valueForDisplay === value) valueForDisplay = convertToUnit(value, "EUR l") || value;
       return math.format(valueForDisplay, { precision: state.settings.precision, lowerExp: -7, upperExp: 12 })
+        .replace(/\bEUR\s+l\b/g, "EUR · L")
         .replace(/\bEUR\b/g, "€")
         .replace(/\s\/\sl\b/g, " / L");
     } catch (_) {
@@ -251,7 +279,8 @@
       }
       try {
         const value = parser.evaluate(normalizedExpression(raw));
-        const preferredUnit = preferredUnitForExpression(raw, unitPreferences);
+        const requestedUnit = preferredUnitForExpression(raw, unitPreferences);
+        const preferredUnit = convertToUnit(value, requestedUnit) ? requestedUnit : null;
         const name = assignmentName(raw);
         if (name && preferredUnit) unitPreferences.set(name, preferredUnit);
         results.set(cell.id, { text: formatResult(value, preferredUnit) });
