@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "1.2.3";
+  const APP_VERSION = "1.2.4";
   const STORAGE_KEY = "math-notes-app-v1";
   const DEFAULT_TITLE = "Nuova pagina";
   const DEFAULT_SETTINGS = { theme: "system", palette: "sage", precision: 12 };
@@ -168,7 +168,7 @@
   }
 
   function numericAssignment(expression) {
-    const match = expression.trim().match(/^([A-Za-z_À-ÿ][\wÀ-ÿ]*)\s*=\s*(-?(?:\d+(?:[.,]\d*)?|[.,]\d+))\s*((?:€|[A-Za-zµ]+)(?:\s*\/\s*(?:€|[A-Za-zµ]+))?)?$/);
+    const match = expression.trim().match(/^([A-Za-z_À-ÿ][\wÀ-ÿ]*)\s*=\s*(-?(?:\d+(?:[.,]\d*)?|[.,]\d+))\s*((?:€|[A-Za-zµ°]+)[A-Za-zµ€°0-9²³⁴⁵⁶⁷⁸⁹^/·\s-]*)?$/);
     if (!match) return null;
     const value = Number(match[2].replace(",", "."));
     return Number.isFinite(value) ? { name: match[1], value, unit: match[3] || "" } : null;
@@ -359,7 +359,7 @@
 
       const numeric = numericAssignment(cell.expression);
       const sliderToggle = document.createElement("button");
-      sliderToggle.className = `cell-slider-toggle${numeric ? " available" : ""}${page.sliders?.[cell.id] ? " active" : ""}`;
+      sliderToggle.className = `cell-slider-toggle${numeric ? " available" : ""}${numeric && page.sliders?.[cell.id] ? " active" : ""}`;
       sliderToggle.type = "button";
       sliderToggle.dataset.toggleSlider = cell.id;
       sliderToggle.setAttribute("aria-label", page.sliders?.[cell.id] ? "Rimuovi slider" : "Aggiungi slider");
@@ -412,7 +412,8 @@
     const cell = page.cells.find((item) => item.id === id);
     if (!cell) return;
     cell.expression = expression;
-    if (page.sliders?.[id] && !numericAssignment(expression)) delete page.sliders[id];
+    // Lo slider resta memorizzato durante una modifica momentaneamente incompleta.
+    // Torna disponibile non appena l'assegnazione torna a essere un numero diretto.
     page.updatedAt = new Date().toISOString();
     persist();
     focusedCellId = id;
@@ -729,8 +730,12 @@
     const item = page.cells.find((entry) => entry.id === cell.dataset.cellId);
     if (!item) return;
     item.expression = event.target.value;
-    if (page.sliders?.[item.id] && !numericAssignment(item.expression)) {
-      delete page.sliders[item.id];
+    const sliderToggle = cell.querySelector("[data-toggle-slider]");
+    const isNumeric = Boolean(numericAssignment(item.expression));
+    const wasNumeric = sliderToggle?.classList.contains("available");
+    if (sliderToggle && wasNumeric !== isNumeric) {
+      // Aggiorna l'icona appena una riga torna (o smette di essere) una variabile numerica.
+      // La configurazione resta salvata, quindi non si perde durante la digitazione.
       page.updatedAt = new Date().toISOString();
       persist();
       focusedCellId = item.id;
