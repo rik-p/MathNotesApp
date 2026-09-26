@@ -96,10 +96,10 @@ button { cursor: pointer; }
 .page-title:focus { box-shadow: inset 0 -2px 0 var(--accent); }
 .page-meta { margin: 10px 1px 0; color: #92948c; font-size: 13px; }
 
-.insert-control { position: sticky; z-index: 3; top: 72px; height: 0; margin: 0; }
-.insert-button { display: grid; width: 28px; height: 28px; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 50%; color: var(--accent); background: var(--card); box-shadow: 0 2px 5px rgba(0,0,0,.05); font-size: 20px; font-weight: 400; line-height: 1; }
+.insert-control { position: sticky; z-index: 3; top: 72px; height: 0; margin: 0; pointer-events: none; }
+.insert-button { position: absolute; top: 7px; right: 0; display: grid; width: 28px; height: 28px; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 50%; color: var(--accent); background: var(--card); box-shadow: 0 2px 5px rgba(0,0,0,.05); font-size: 20px; font-weight: 400; line-height: 1; pointer-events: auto; }
 .insert-button:hover, .insert-button[aria-expanded="true"] { border-color: var(--accent); color: var(--card); background: var(--accent); }
-.insert-menu { position: absolute; top: 34px; left: 0; display: grid; gap: 8px; width: max-content; max-width: min(480px, calc(100vw - 44px)); padding: 10px; border: 1px solid var(--line); border-radius: 11px; background: var(--card); box-shadow: var(--shadow); }
+.insert-menu { position: absolute; top: 41px; right: 0; display: grid; gap: 8px; width: max-content; max-width: min(480px, calc(100vw - 44px)); padding: 10px; border: 1px solid var(--line); border-radius: 11px; background: var(--card); box-shadow: var(--shadow); pointer-events: auto; }
 .insert-menu[hidden] { display: none; }
 .insert-menu-label { margin: 1px 3px 0; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .symbol-group { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -187,6 +187,7 @@ button { cursor: pointer; }
   .topbar { height: 57px; padding: 0 15px; }
   .notebook { width: min(100% - 30px, 920px); padding-top: 37px; }
   .insert-control { top: 63px; }
+  input, select, textarea { font-size: 16px; }
   .cell { grid-template-columns: 23px minmax(0, 1fr) 25px 25px; align-items: start; padding: 2px 7px 2px 0; }
   .drag-handle { margin-top: 4px; }
   .result { grid-column: 2 / 3; padding: 0 8px 6px; border-left: 0; white-space: normal; }
