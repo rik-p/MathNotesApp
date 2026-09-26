@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "1.1.2";
+  const APP_VERSION = "1.1.3";
   const STORAGE_KEY = "math-notes-app-v1";
   const DEFAULT_TITLE = "Nuova pagina";
   const DEFAULT_SETTINGS = { theme: "system", palette: "sage", precision: 12 };
