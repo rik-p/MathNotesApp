@@ -150,6 +150,21 @@
       .trim();
   }
 
+  function assignmentName(expression) {
+    return expression.match(/^\s*([A-Za-z_À-ÿ][\wÀ-ÿ]*)\s*=/)?.[1] || null;
+  }
+
+  function preferredUnitForExpression(expression, preferences) {
+    const compoundUnit = expression.match(/\b([A-Za-zµ]+)\s*\/\s*([A-Za-zµ]+)\b/);
+    if (compoundUnit) {
+      const numerator = compoundUnit[1];
+      const denominator = compoundUnit[2] === "L" ? "l" : compoundUnit[2];
+      return `${numerator} / ${denominator}`;
+    }
+    const symbols = expression.match(/[A-Za-z_À-ÿ][\wÀ-ÿ]*/g) || [];
+    return symbols.map((symbol) => preferences.get(symbol)).find(Boolean) || null;
+  }
+
   function configureMathEngine() {
     if (mathConfigured || typeof math === "undefined") return;
     try {
@@ -170,11 +185,16 @@
     return "Controlla la sintassi";
   }
 
-  function formatResult(value) {
+  function formatResult(value, preferredUnit = null) {
     if (typeof value === "undefined") return "";
     if (typeof math === "undefined") return "Motore non disponibile";
     try {
-      return math.format(value, { precision: state.settings.precision, lowerExp: -7, upperExp: 12 }).replace(/\bEUR\b/g, "€");
+      const valueForDisplay = preferredUnit && typeof value?.to === "function"
+        ? value.to(preferredUnit)
+        : value;
+      return math.format(valueForDisplay, { precision: state.settings.precision, lowerExp: -7, upperExp: 12 })
+        .replace(/\bEUR\b/g, "€")
+        .replace(/\s\/\sl\b/g, " / L");
     } catch (_) {
       return String(value);
     }
@@ -188,6 +208,7 @@
     }
     configureMathEngine();
     const parser = math.parser();
+    const unitPreferences = new Map();
     page.cells.forEach((cell) => {
       const raw = cell.expression.trim();
       if (!raw || raw.startsWith("#") || raw.startsWith("//")) {
@@ -196,7 +217,10 @@
       }
       try {
         const value = parser.evaluate(normalizedExpression(raw));
-        results.set(cell.id, { text: formatResult(value) });
+        const preferredUnit = preferredUnitForExpression(raw, unitPreferences);
+        const name = assignmentName(raw);
+        if (name && preferredUnit) unitPreferences.set(name, preferredUnit);
+        results.set(cell.id, { text: formatResult(value, preferredUnit) });
       } catch (error) {
         results.set(cell.id, { error: friendlyError(error) });
       }
@@ -434,6 +458,13 @@
 
   function closeSidebar() { els.sidebar.classList.remove("open"); }
 
+  function closeInsertMenu() {
+    const menu = document.getElementById("insertMenu");
+    if (menu.hidden) return;
+    menu.hidden = true;
+    document.getElementById("insertButton").setAttribute("aria-expanded", "false");
+  }
+
   function resetData() {
     const accepted = window.confirm("Ripristinare i dati iniziali? Tutte le note presenti su questo dispositivo verranno eliminate.");
     if (!accepted) return;
@@ -618,8 +649,15 @@
     const button = event.target.closest("[data-insert]");
     if (!button) return;
     insertAtCursor(button.dataset.insert, button.dataset.caret);
-    event.currentTarget.hidden = true;
-    document.getElementById("insertButton").setAttribute("aria-expanded", "false");
+    closeInsertMenu();
+  });
+
+  document.addEventListener("pointerdown", (event) => {
+    if (!event.target.closest(".insert-control")) closeInsertMenu();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeInsertMenu();
   });
 
   document.addEventListener("selectionchange", () => {

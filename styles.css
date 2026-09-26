@@ -59,6 +59,8 @@ button { cursor: pointer; }
 
 .icon-button { width: 31px; height: 31px; padding: 0; border: 0; border-radius: 8px; color: var(--muted); background: transparent; font-size: 19px; line-height: 1; }
 .icon-button:hover { color: var(--ink); background: rgba(37,39,34,.07); }
+.icon-button-svg { display: inline-grid; place-items: center; }
+.icon-button-svg svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.75; }
 .sidebar-close, .menu-button { display: none; }
 
 .sidebar-actions { padding: 30px 3px 14px; }
@@ -94,7 +96,7 @@ button { cursor: pointer; }
 .page-title:focus { box-shadow: inset 0 -2px 0 var(--accent); }
 .page-meta { margin: 10px 1px 0; color: #92948c; font-size: 13px; }
 
-.insert-control { position: relative; z-index: 2; height: 34px; margin: 0 0 9px; }
+.insert-control { position: sticky; z-index: 3; top: 72px; height: 0; margin: 0; }
 .insert-button { display: grid; width: 28px; height: 28px; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 50%; color: var(--accent); background: var(--card); box-shadow: 0 2px 5px rgba(0,0,0,.05); font-size: 20px; font-weight: 400; line-height: 1; }
 .insert-button:hover, .insert-button[aria-expanded="true"] { border-color: var(--accent); color: var(--card); background: var(--accent); }
 .insert-menu { position: absolute; top: 34px; left: 0; display: grid; gap: 8px; width: max-content; max-width: min(480px, calc(100vw - 44px)); padding: 10px; border: 1px solid var(--line); border-radius: 11px; background: var(--card); box-shadow: var(--shadow); }
@@ -170,6 +172,7 @@ button { cursor: pointer; }
   .sidebar-close, .menu-button { display: grid; place-items: center; }
   .topbar { height: 57px; padding: 0 15px; }
   .notebook { width: min(100% - 30px, 920px); padding-top: 37px; }
+  .insert-control { top: 63px; }
   .cell { grid-template-columns: 23px minmax(0, 1fr) 25px; align-items: start; padding: 2px 7px 2px 0; }
   .line-number { padding-top: 13px; }
   .result { grid-column: 2 / 3; padding: 0 8px 6px; border-left: 0; white-space: normal; }

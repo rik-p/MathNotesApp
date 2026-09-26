@@ -64,9 +64,13 @@
           <div class="crumb"><span class="crumb-dot"></span> Quaderno personale</div>
           <div class="topbar-actions">
             <span class="save-state" id="saveState">Salvato</span>
-            <button class="icon-button" id="settingsButton" title="Impostazioni" aria-label="Apri impostazioni">⚙</button>
+            <button class="icon-button icon-button-svg" id="settingsButton" title="Impostazioni" aria-label="Apri impostazioni">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h3M11 17h9M14 4v6M7 14v6"/><circle cx="16" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
+            </button>
             <button class="icon-button" id="duplicateButton" title="Duplica pagina" aria-label="Duplica pagina">⧉</button>
-            <button class="icon-button danger-button" id="deletePageButton" title="Elimina pagina" aria-label="Elimina pagina">⌫</button>
+            <button class="icon-button icon-button-svg danger-button" id="deletePageButton" title="Elimina pagina" aria-label="Elimina pagina">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+            </button>
           </div>
         </header>
 
@@ -88,7 +92,6 @@
                 <button data-insert="×" title="Moltiplicazione">×</button>
                 <button data-insert="÷" title="Divisione">÷</button>
                 <button data-insert="()" data-caret="-1" title="Parentesi">( )</button>
-                <button data-insert="€" title="Euro">€</button>
               </div>
               <div class="symbol-group">
                 <button data-insert="log()" data-caret="-1">log</button>
