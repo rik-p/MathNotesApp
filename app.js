@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "1.1.3";
+  const APP_VERSION = "1.2.0";
   const STORAGE_KEY = "math-notes-app-v1";
   const DEFAULT_TITLE = "Nuova pagina";
   const DEFAULT_SETTINGS = { theme: "system", palette: "sage", precision: 12 };
@@ -15,6 +15,7 @@
   let updateRequested = false;
   let mathConfigured = false;
   let insertionTarget = { cellId: null, start: 0, end: 0 };
+  let rowDrag = null;
 
   const els = {
     pageList: document.getElementById("pageList"),
@@ -69,6 +70,7 @@
       title: String(page.title || DEFAULT_TITLE),
       createdAt: page.createdAt || new Date().toISOString(),
       updatedAt: page.updatedAt || new Date().toISOString(),
+      sliders: normalizeSliders(page.sliders),
       cells: Array.isArray(page.cells) && page.cells.length
         ? page.cells.map((cell) => ({ id: cell.id || uid(), expression: String(cell.expression ?? "") }))
         : [{ id: uid(), expression: "" }],
@@ -77,6 +79,17 @@
       ? candidate.activePageId
       : pages[0].id;
     return { version: 1, settings, activePageId, pages };
+  }
+
+  function normalizeSliders(candidate) {
+    if (!candidate || typeof candidate !== "object") return {};
+    return Object.fromEntries(Object.entries(candidate).flatMap(([cellId, config]) => {
+      const min = Number(config?.min);
+      const max = Number(config?.max);
+      const step = Number(config?.step);
+      if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(step) || min >= max || step <= 0) return [];
+      return [[cellId, { min, max, step }]];
+    }));
   }
 
   function loadState() {
@@ -152,6 +165,27 @@
 
   function assignmentName(expression) {
     return expression.match(/^\s*([A-Za-z_À-ÿ][\wÀ-ÿ]*)\s*=/)?.[1] || null;
+  }
+
+  function numericAssignment(expression) {
+    const match = expression.trim().match(/^([A-Za-z_À-ÿ][\wÀ-ÿ]*)\s*=\s*(-?(?:\d+(?:[.,]\d*)?|[.,]\d+))$/);
+    if (!match) return null;
+    const value = Number(match[2].replace(",", "."));
+    return Number.isFinite(value) ? { name: match[1], value } : null;
+  }
+
+  function defaultSlider(value) {
+    const magnitude = Math.max(Math.abs(value), 1);
+    const span = Math.max(magnitude * 2, 10);
+    return {
+      min: value < 0 ? -span : 0,
+      max: value < 0 ? 0 : span,
+      step: span >= 100 ? 1 : span >= 10 ? 0.1 : 0.01,
+    };
+  }
+
+  function displayNumber(value) {
+    return Number(value.toFixed(10)).toString();
   }
 
   function preferredUnitForExpression(expression, preferences) {
@@ -255,9 +289,13 @@
       row.className = "cell";
       row.dataset.cellId = cell.id;
 
-      const number = document.createElement("span");
-      number.className = "line-number";
-      number.textContent = index + 1;
+      const dragHandle = document.createElement("button");
+      dragHandle.className = "drag-handle";
+      dragHandle.type = "button";
+      dragHandle.dataset.dragCell = cell.id;
+      dragHandle.setAttribute("aria-label", `Sposta riga ${index + 1}`);
+      dragHandle.title = "Trascina per spostare la riga";
+      dragHandle.innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12"/></svg>';
 
       const input = document.createElement("input");
       input.className = "expression";
@@ -289,7 +327,44 @@
       remove.dataset.removeCell = cell.id;
       remove.setAttribute("aria-label", `Elimina riga ${index + 1}`);
       remove.textContent = "×";
-      row.append(number, input, result, remove);
+
+      const numeric = numericAssignment(cell.expression);
+      const sliderToggle = document.createElement("button");
+      sliderToggle.className = `cell-slider-toggle${numeric ? " available" : ""}${page.sliders?.[cell.id] ? " active" : ""}`;
+      sliderToggle.type = "button";
+      sliderToggle.dataset.toggleSlider = cell.id;
+      sliderToggle.setAttribute("aria-label", page.sliders?.[cell.id] ? "Rimuovi slider" : "Aggiungi slider");
+      sliderToggle.title = page.sliders?.[cell.id] ? "Rimuovi slider" : "Aggiungi slider";
+      sliderToggle.textContent = "↔";
+
+      row.append(dragHandle, input, result, sliderToggle, remove);
+
+      if (numeric && page.sliders?.[cell.id]) {
+        const config = page.sliders[cell.id];
+        const panel = document.createElement("div");
+        panel.className = "slider-panel";
+        panel.dataset.sliderPanel = cell.id;
+
+        const range = document.createElement("input");
+        range.type = "range";
+        range.min = String(config.min);
+        range.max = String(config.max);
+        range.step = String(config.step);
+        range.value = String(Math.min(config.max, Math.max(config.min, numeric.value)));
+        range.dataset.sliderValue = cell.id;
+        range.setAttribute("aria-label", `Valore di ${numeric.name}`);
+
+        const value = document.createElement("output");
+        value.className = "slider-value";
+        value.dataset.sliderDisplay = cell.id;
+        value.textContent = displayNumber(numeric.value);
+
+        const minLabel = sliderLimit("Min", "min", cell.id, config.min);
+        const maxLabel = sliderLimit("Max", "max", cell.id, config.max);
+        const stepLabel = sliderLimit("Passo", "step", cell.id, config.step);
+        panel.append(range, value, minLabel, maxLabel, stepLabel);
+        row.append(panel);
+      }
       els.cells.append(row);
     });
   }
@@ -308,6 +383,7 @@
     const cell = page.cells.find((item) => item.id === id);
     if (!cell) return;
     cell.expression = expression;
+    if (page.sliders?.[id] && !numericAssignment(expression)) delete page.sliders[id];
     page.updatedAt = new Date().toISOString();
     persist();
     focusedCellId = id;
@@ -335,9 +411,47 @@
       page.cells.splice(index, 1);
       focusedCellId = page.cells[Math.max(0, index - 1)].id;
     }
+    if (page.sliders) delete page.sliders[id];
     page.updatedAt = new Date().toISOString();
     persist();
     render({ preserveFocus: true });
+  }
+
+  function sliderLimit(label, field, cellId, value) {
+    const wrapper = document.createElement("label");
+    wrapper.className = "slider-limit";
+    wrapper.textContent = label;
+    const input = document.createElement("input");
+    input.type = "number";
+    input.step = "any";
+    input.value = String(value);
+    input.dataset.sliderLimit = field;
+    input.dataset.cellId = cellId;
+    input.setAttribute("aria-label", `${label} slider`);
+    wrapper.append(input);
+    return wrapper;
+  }
+
+  function refreshResults(page = activePage()) {
+    const results = calculatePage(page);
+    page.cells.forEach((entry) => {
+      const output = els.cells.querySelector(`[data-cell-id="${entry.id}"] .result`);
+      const current = results.get(entry.id) || {};
+      if (!output) return;
+      output.className = "result";
+      if (current.error) {
+        output.classList.add("error");
+        output.textContent = current.error;
+        output.title = current.error;
+      } else if (current.text) {
+        output.textContent = `= ${current.text}`;
+        output.title = current.text;
+      } else {
+        output.classList.add("empty");
+        output.textContent = "—";
+        output.title = "";
+      }
+    });
   }
 
   function addPage() {
@@ -586,6 +700,14 @@
     const item = page.cells.find((entry) => entry.id === cell.dataset.cellId);
     if (!item) return;
     item.expression = event.target.value;
+    if (page.sliders?.[item.id] && !numericAssignment(item.expression)) {
+      delete page.sliders[item.id];
+      page.updatedAt = new Date().toISOString();
+      persist();
+      focusedCellId = item.id;
+      render({ preserveFocus: true });
+      return;
+    }
     page.updatedAt = new Date().toISOString();
     persist();
     focusedCellId = item.id;
@@ -640,6 +762,108 @@
     const button = event.target.closest("[data-remove-cell]");
     if (button) removeLine(button.dataset.removeCell);
   });
+
+  els.cells.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-toggle-slider]");
+    if (!button || !button.classList.contains("available")) return;
+    const page = activePage();
+    const cell = page.cells.find((item) => item.id === button.dataset.toggleSlider);
+    const assignment = cell && numericAssignment(cell.expression);
+    if (!assignment) return;
+    page.sliders ||= {};
+    if (page.sliders[cell.id]) delete page.sliders[cell.id];
+    else page.sliders[cell.id] = defaultSlider(assignment.value);
+    page.updatedAt = new Date().toISOString();
+    persist();
+    renderCells();
+  });
+
+  els.cells.addEventListener("input", (event) => {
+    const range = event.target.closest("[data-slider-value]");
+    if (!range) return;
+    const page = activePage();
+    const cell = page.cells.find((item) => item.id === range.dataset.sliderValue);
+    const assignment = cell && numericAssignment(cell.expression);
+    if (!cell || !assignment) return;
+    const nextValue = Number(range.value);
+    cell.expression = `${assignment.name} = ${displayNumber(nextValue)}`;
+    page.updatedAt = new Date().toISOString();
+    range.closest(".slider-panel").querySelector("[data-slider-display]").textContent = displayNumber(nextValue);
+    persist();
+    refreshResults(page);
+  });
+
+  els.cells.addEventListener("change", (event) => {
+    const limit = event.target.closest("[data-slider-limit]");
+    if (!limit) return;
+    const page = activePage();
+    const cellId = limit.dataset.cellId;
+    const panel = limit.closest(".slider-panel");
+    const min = Number(panel.querySelector('[data-slider-limit="min"]').value);
+    const max = Number(panel.querySelector('[data-slider-limit="max"]').value);
+    const step = Number(panel.querySelector('[data-slider-limit="step"]').value);
+    if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(step) || min >= max || step <= 0) {
+      showToast("Inserisci minimo, massimo e passo validi.");
+      renderCells();
+      return;
+    }
+    page.sliders[cellId] = { min, max, step };
+    page.updatedAt = new Date().toISOString();
+    persist();
+    renderCells();
+  });
+
+  function clearRowDrag() {
+    els.cells.querySelectorAll(".dragging, .drop-before, .drop-after").forEach((row) => {
+      row.classList.remove("dragging", "drop-before", "drop-after");
+    });
+    rowDrag = null;
+  }
+
+  els.cells.addEventListener("pointerdown", (event) => {
+    const handle = event.target.closest("[data-drag-cell]");
+    if (!handle || (event.pointerType === "mouse" && event.button !== 0)) return;
+    const row = handle.closest(".cell");
+    rowDrag = { cellId: handle.dataset.dragCell, pointerId: event.pointerId, before: true };
+    handle.setPointerCapture?.(event.pointerId);
+    row.classList.add("dragging");
+    event.preventDefault();
+  });
+
+  document.addEventListener("pointermove", (event) => {
+    if (!rowDrag || event.pointerId !== rowDrag.pointerId) return;
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest(".cell");
+    els.cells.querySelectorAll(".drop-before, .drop-after").forEach((row) => row.classList.remove("drop-before", "drop-after"));
+    if (!target || target.dataset.cellId === rowDrag.cellId) {
+      rowDrag.targetId = null;
+      return;
+    }
+    const bounds = target.getBoundingClientRect();
+    rowDrag.targetId = target.dataset.cellId;
+    rowDrag.before = event.clientY < bounds.top + bounds.height / 2;
+    target.classList.add(rowDrag.before ? "drop-before" : "drop-after");
+    event.preventDefault();
+  });
+
+  document.addEventListener("pointerup", (event) => {
+    if (!rowDrag || event.pointerId !== rowDrag.pointerId) return;
+    const drag = rowDrag;
+    const page = activePage();
+    if (drag.targetId && drag.targetId !== drag.cellId) {
+      const fromIndex = page.cells.findIndex((cell) => cell.id === drag.cellId);
+      const [moved] = page.cells.splice(fromIndex, 1);
+      let targetIndex = page.cells.findIndex((cell) => cell.id === drag.targetId);
+      if (!drag.before) targetIndex += 1;
+      page.cells.splice(targetIndex, 0, moved);
+      page.updatedAt = new Date().toISOString();
+      persist();
+      focusedCellId = moved.id;
+      render({ preserveFocus: true });
+    }
+    clearRowDrag();
+  });
+
+  document.addEventListener("pointercancel", clearRowDrag);
 
   document.getElementById("insertMenu").addEventListener("pointerdown", (event) => {
     if (event.target.closest("[data-insert]")) event.preventDefault();

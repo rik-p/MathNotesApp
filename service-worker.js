@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'math-notes-shell-v4';
+const CACHE_VERSION = 'math-notes-shell-v5';
 const MATHJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/mathjs/15.1.0/math.min.js';
 const APP_SHELL = [
   './',
